@@ -165,8 +165,7 @@ class LayoutTool:
     def export_vtu(self, filename: str, layers: Optional[List[str]] = None):
         """Export the 2D layout representation to a VTU file for ParaView. If layers is provided, only export those layers."""
         points = []
-        quads = []
-        triangles = []
+        lines = []
         
         point_idx = 0
         
@@ -182,7 +181,8 @@ class LayoutTool:
                     (x1, y1, base_z), (x2, y1, base_z), (x2, y2, base_z), (x1, y2, base_z)
                 ]
                 points.extend(pts)
-                quads.append([point_idx, point_idx + 1, point_idx + 2, point_idx + 3])
+                for i in range(4):
+                    lines.append([point_idx + i, point_idx + ((i + 1) % 4)])
                 point_idx += 4
                 
         # Add Unit Instances
@@ -201,15 +201,12 @@ class LayoutTool:
                         global_corners = [(inst_c[0] + lx, inst_c[1] + ly, base_z) for lx, ly in local_corners]
                         
                         points.extend(global_corners)
-                        quads.append([point_idx, point_idx + 1, point_idx + 2, point_idx + 3])
+                        for i in range(4):
+                            lines.append([point_idx + i, point_idx + ((i + 1) % 4)])
                         point_idx += 4
                         
                     elif u["type"] in ("circle", "ellipse"):
                         N = self.resolution
-                        points.append((cx, cy, base_z))
-                        c_idx = point_idx
-                        point_idx += 1
-                        
                         angles = np.linspace(0, 2 * np.pi, N, endpoint=False)
                         
                         if u["type"] == "circle":
@@ -224,22 +221,17 @@ class LayoutTool:
                             xs = cx + xt * np.cos(ang) - yt * np.sin(ang)
                             ys = cy + xt * np.sin(ang) + yt * np.cos(ang)
                             
-                        start_idx = point_idx
                         for i in range(N):
                             points.append((xs[i], ys[i], base_z))
-                            point_idx += 1
                             
                         for i in range(N):
-                            p_bot1 = c_idx
-                            p_bot2 = start_idx + i
-                            p_bot3 = start_idx + ((i + 1) % N)
-                            triangles.append([p_bot1, p_bot2, p_bot3])
+                            lines.append([point_idx + i, point_idx + ((i + 1) % N)])
+                            
+                        point_idx += N
         
         cells = []
-        if quads:
-            cells.append(("quad", np.array(quads)))
-        if triangles:
-            cells.append(("triangle", np.array(triangles)))
+        if lines:
+            cells.append(("line", np.array(lines)))
             
         if not points:
             print("No shapes to export.")

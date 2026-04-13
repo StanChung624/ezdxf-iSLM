@@ -24,7 +24,7 @@ This project generates DXF files for EBG (Electromagnetic Band Gap) structures a
 The `LayoutTool` class from `src.layout_tool` uses a "Substrate" + "Unit Design" + "Instances" workflow, which directly maps to iSLM's global and unit DXF formats. A unit design can be a single shape or composed of multiple shapes (rectangles, circles, ellipses) placed relative to the unit's local origin. 
 
 ### Key Features
-- **Units**: Set standard physical DXF units (e.g., `"mm"`, `"um"`, `"in"`) upon initialization to support iSLM's scaling requirements.
+- **Units Flexibility**: Set specific physical DXF units independently for the global layout and the unit design (e.g., global `"mm"`, unit design `"um"`) upon initialization to support iSLM's scaling requirements.
 - **Rotatable Rectangles**: The `add_unit_rectangle` method supports a `rotation_deg` parameter.
 - **Composite Units**: Stack multiple shapes within a single unit design.
 - **ParaView Integration**: Export a single `.vtu` wireframe file to visualize the entire global layout instantly.
@@ -37,8 +37,8 @@ from src.layout_tool import LayoutTool
 
 def main():
     # Specify the measurement unit for the DXF export (e.g., "mm", "um", "in", "unitless")
-    # Default is "mm" with a tessellation resolution of 128
-    layout = LayoutTool(resolution=128, unit="um")
+    # We can specify different units for the global DXF and the unit design DXF
+    layout = LayoutTool(resolution=128, global_unit="mm", unit_design_unit="um")
 
     # 1. Set the global substrate
     layout.set_substrate(p1=(0, 0), p2=(100, 100), base_z=0.0)

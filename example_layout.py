@@ -3,8 +3,8 @@ from src.layout_tool import LayoutTool
 
 def main():
     # Specify the measurement unit for the DXF export (e.g., "mm", "um", "in", "unitless")
-    # Default is "mm"
-    layout = LayoutTool(resolution=128, unit="um")
+    # We can specify different units for the global DXF and the unit design DXF
+    layout = LayoutTool(resolution=128, global_unit="mm", unit_design_unit="um")
 
     # 1. Set the global substrate
     layout.set_substrate(p1=(0, 0), p2=(100, 100), base_z=0.0)

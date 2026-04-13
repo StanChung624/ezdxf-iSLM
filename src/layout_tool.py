@@ -16,14 +16,17 @@ class LayoutTool:
         "nm": 14, "nanometers": 14
     }
 
-    def __init__(self, resolution: int = 128, unit: str = "mm"):
+    def __init__(self, resolution: int = 128, global_unit: str = "mm", unit_design_unit: str = "um"):
         self.substrate = None
         self.unit_shapes = []
         self.instance_centers = []
         self.resolution = resolution
-        self.unit = unit.lower()
-        if self.unit not in self.UNIT_MAP:
-            raise ValueError(f"Unsupported unit: {unit}. Supported units: {list(self.UNIT_MAP.keys())}")
+        self.global_unit = global_unit.lower()
+        self.unit_design_unit = unit_design_unit.lower()
+        if self.global_unit not in self.UNIT_MAP:
+            raise ValueError(f"Unsupported global unit: {global_unit}. Supported units: {list(self.UNIT_MAP.keys())}")
+        if self.unit_design_unit not in self.UNIT_MAP:
+            raise ValueError(f"Unsupported unit design unit: {unit_design_unit}. Supported units: {list(self.UNIT_MAP.keys())}")
 
     def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "substrate"):
         """Set the rectangular substrate."""
@@ -97,11 +100,12 @@ class LayoutTool:
         1. global.dxf: contains substrate geometry and a "Center" layer with POINT entities for unit locations.
         2. unit_design.dxf: contains the unit design centered at (0,0) and a "Center" point at (0,0).
         """
-        unit_code = self.UNIT_MAP[self.unit]
+        global_unit_code = self.UNIT_MAP[self.global_unit]
+        unit_design_unit_code = self.UNIT_MAP[self.unit_design_unit]
 
         # --- 1. Export global.dxf ---
         doc_global = ezdxf.new("R2010")
-        doc_global.header['$INSUNITS'] = unit_code
+        doc_global.header['$INSUNITS'] = global_unit_code
         msp_global = doc_global.modelspace()
         
         doc_global.layers.add("Center")
@@ -125,7 +129,7 @@ class LayoutTool:
             msp_global.add_point((center[0], center[1], 0.0), dxfattribs={"layer": "Center"})
             
         doc_global.saveas(global_filename)
-        print(f"Exported iSLM Global DXF ({self.unit}): {global_filename}")
+        print(f"Exported iSLM Global DXF ({self.global_unit}): {global_filename}")
 
         # --- 2. Export unit_design.dxf ---
         if not self.unit_shapes:
@@ -133,7 +137,7 @@ class LayoutTool:
             return
 
         doc_unit = ezdxf.new("R2010")
-        doc_unit.header['$INSUNITS'] = unit_code
+        doc_unit.header['$INSUNITS'] = unit_design_unit_code
         msp_unit = doc_unit.modelspace()
         
         doc_unit.layers.add("Center")
@@ -179,7 +183,7 @@ class LayoutTool:
                 })
 
         doc_unit.saveas(unit_filename)
-        print(f"Exported iSLM Unit DXF ({self.unit}): {unit_filename}")
+        print(f"Exported iSLM Unit DXF ({self.unit_design_unit}): {unit_filename}")
 
     def export_vtu(self, filename: str, layers: Optional[List[str]] = None):
         """Export the 2D layout representation to a VTU file for ParaView. If layers is provided, only export those layers."""
@@ -258,4 +262,4 @@ class LayoutTool:
             
         mesh = meshio.Mesh(points=np.array(points), cells=cells)
         mesh.write(filename)
-        print(f"Exported VTU ({self.unit}): {filename}")
+        print(f"Exported VTU ({self.global_unit}): {filename}")

@@ -19,13 +19,14 @@ class LayoutTool:
             "layer": layername
         }
 
-    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "bumps"):
         """Add a rectangle to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "rectangle",
             "center": center,
             "width": width,
             "height": height,
+            "rotation": rotation_deg,
             "base_z": base_z,
             "layer": layername
         })
@@ -55,6 +56,24 @@ class LayoutTool:
     def add_instance(self, center: Tuple[float, float]):
         """Add an instance of the unit design at the given global center coordinate."""
         self.instance_centers.append(center)
+
+    def _get_rotated_rect_points(self, cx: float, cy: float, w: float, h: float, rotation_deg: float) -> List[Tuple[float, float]]:
+        """Calculate the four corners of a rotated rectangle."""
+        hw, hh = w / 2.0, h / 2.0
+        ang = np.deg2rad(rotation_deg)
+        cos_a = np.cos(ang)
+        sin_a = np.sin(ang)
+        
+        # Local corners before rotation
+        local_pts = [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
+        
+        # Apply rotation and translation
+        pts = []
+        for lx, ly in local_pts:
+            rx = lx * cos_a - ly * sin_a
+            ry = lx * sin_a + ly * cos_a
+            pts.append((cx + rx, cy + ry))
+        return pts
 
     def export_islm(self, global_filename: str = "global.dxf", unit_filename: str = "unit_design.dxf"):
         """
@@ -111,14 +130,7 @@ class LayoutTool:
             cx, cy = u["center"]
             
             if u["type"] == "rectangle":
-                w, h = u["width"], u["height"]
-                hw, hh = w / 2.0, h / 2.0
-                pts = [
-                    (cx - hw, cy - hh), 
-                    (cx + hw, cy - hh), 
-                    (cx + hw, cy + hh), 
-                    (cx - hw, cy + hh)
-                ]
+                pts = self._get_rotated_rect_points(cx, cy, u["width"], u["height"], u["rotation"])
                 msp_unit.add_lwpolyline(pts, close=True, dxfattribs={
                     "layer": u["layer"],
                     "elevation": float(base_z)
@@ -184,15 +196,13 @@ class LayoutTool:
                     cy = inst_c[1] + u["center"][1]
                     
                     if u["type"] == "rectangle":
-                        w, h = u["width"], u["height"]
-                        hw, hh = w / 2.0, h / 2.0
-                        pts = [
-                            (cx - hw, cy - hh, base_z),
-                            (cx + hw, cy - hh, base_z),
-                            (cx + hw, cy + hh, base_z),
-                            (cx - hw, cy + hh, base_z)
-                        ]
-                        points.extend(pts)
+                        # We need to rotate around the u["center"] then translate by inst_c
+                        # But simpler: use the local center relative to unit origin, then globalize
+                        # The rotation is intrinsic to the rectangle shape itself.
+                        local_corners = self._get_rotated_rect_points(u["center"][0], u["center"][1], u["width"], u["height"], u["rotation"])
+                        global_corners = [(inst_c[0] + lx, inst_c[1] + ly, base_z) for lx, ly in local_corners]
+                        
+                        points.extend(global_corners)
                         quads.append([point_idx, point_idx + 1, point_idx + 2, point_idx + 3])
                         point_idx += 4
                         

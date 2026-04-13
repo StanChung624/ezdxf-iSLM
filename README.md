@@ -24,9 +24,10 @@ This project generates DXF files for EBG (Electromagnetic Band Gap) structures a
 The `LayoutTool` class from `src.layout_tool` uses a "Substrate" + "Unit Design" + "Instances" workflow, which directly maps to iSLM's global and unit DXF formats. A unit design can be a single shape or composed of multiple shapes (rectangles, circles, ellipses) placed relative to the unit's local origin. 
 
 ### Key Features
+- **Units**: Set standard physical DXF units (e.g., `"mm"`, `"um"`, `"in"`) upon initialization to support iSLM's scaling requirements.
 - **Rotatable Rectangles**: The `add_unit_rectangle` method supports a `rotation_deg` parameter.
 - **Composite Units**: Stack multiple shapes within a single unit design.
-- **ParaView Integration**: Export a single `.vtu` file to visualize the entire global layout instantly.
+- **ParaView Integration**: Export a single `.vtu` wireframe file to visualize the entire global layout instantly.
 
 ### Example (`example_layout.py`)
 
@@ -35,7 +36,9 @@ import os
 from src.layout_tool import LayoutTool
 
 def main():
-    layout = LayoutTool()
+    # Specify the measurement unit for the DXF export (e.g., "mm", "um", "in", "unitless")
+    # Default is "mm" with a tessellation resolution of 128
+    layout = LayoutTool(resolution=128, unit="um")
 
     # 1. Set the global substrate
     layout.set_substrate(p1=(0, 0), p2=(100, 100), base_z=0.0)
@@ -82,4 +85,4 @@ python3 example_layout.py
    - Contains the chosen composite unit shapes (circles, rectangles, ellipses) positioned relative to the local origin `(0, 0, 0)`. Rectangles can be rotated using `rotation_deg`.
    - Contains the mandatory `Center` layer featuring a single `point` entity at the origin `(0, 0, 0)`.
 3. **`layout_output.vtu`**: 
-   - A 2D flat mesh combining both the Substrate outline and the mapped Units correctly positioned at their instances' center points. Open this file in **ParaView** to see the full structural layout simultaneously.
+   - A 2D hollow line/wireframe mesh combining both the Substrate outline and the mapped Units correctly positioned at their instances' center points. Open this file in **ParaView** to see the full structural layout simultaneously.

@@ -9,7 +9,7 @@ class LayoutTool:
         self.unit_shapes = []
         self.instance_centers = []
 
-    def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "substrate"):
+    def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "MOLD CAP"):
         """Set the rectangular substrate."""
         self.substrate = {
             "type": "rectangle",
@@ -19,7 +19,7 @@ class LayoutTool:
             "layer": layername
         }
 
-    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "BUMP1"):
         """Add a rectangle to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "rectangle",
@@ -31,7 +31,7 @@ class LayoutTool:
             "layer": layername
         })
 
-    def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "BUMP1"):
         """Add a circle to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "circle",
@@ -41,7 +41,7 @@ class LayoutTool:
             "layer": layername
         })
 
-    def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "BUMP1"):
         """Add an ellipse to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "ellipse",

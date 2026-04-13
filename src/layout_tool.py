@@ -16,6 +16,19 @@ class LayoutTool:
         "nm": 14, "nanometers": 14
     }
 
+    # Conversion factors to meters to help calculate relative scaling
+    UNIT_TO_M = {
+        "unitless": 1.0,
+        "in": 0.0254, "inches": 0.0254,
+        "ft": 0.3048, "feet": 0.3048,
+        "mi": 1609.344, "miles": 1609.344,
+        "mm": 0.001, "millimeters": 0.001,
+        "cm": 0.01, "centimeters": 0.01,
+        "m": 1.0, "meters": 1.0,
+        "um": 0.000001, "micrometers": 0.000001, "microns": 0.000001,
+        "nm": 0.000000001, "nanometers": 0.000000001
+    }
+
     def __init__(self, resolution: int = 128, global_unit: str = "mm", unit_design_unit: str = "um"):
         self.substrate = None
         self.unit_shapes = []
@@ -23,13 +36,14 @@ class LayoutTool:
         self.resolution = resolution
         self.global_unit = global_unit.lower()
         self.unit_design_unit = unit_design_unit.lower()
+        
         if self.global_unit not in self.UNIT_MAP:
             raise ValueError(f"Unsupported global unit: {global_unit}. Supported units: {list(self.UNIT_MAP.keys())}")
         if self.unit_design_unit not in self.UNIT_MAP:
             raise ValueError(f"Unsupported unit design unit: {unit_design_unit}. Supported units: {list(self.UNIT_MAP.keys())}")
 
     def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "substrate"):
-        """Set the rectangular substrate."""
+        """Set the rectangular substrate. Coordinates should be in global_unit."""
         self.substrate = {
             "type": "rectangle",
             "p1": p1,
@@ -39,7 +53,7 @@ class LayoutTool:
         }
 
     def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "bumps"):
-        """Add a rectangle to the unit design, positioned relative to the unit's local origin."""
+        """Add a rectangle to the unit design. Inputs should be in global_unit."""
         self.unit_shapes.append({
             "type": "rectangle",
             "center": center,
@@ -51,7 +65,7 @@ class LayoutTool:
         })
 
     def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "bumps"):
-        """Add a circle to the unit design, positioned relative to the unit's local origin."""
+        """Add a circle to the unit design. Inputs should be in global_unit."""
         self.unit_shapes.append({
             "type": "circle",
             "center": center,
@@ -61,7 +75,7 @@ class LayoutTool:
         })
 
     def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "bumps"):
-        """Add an ellipse to the unit design, positioned relative to the unit's local origin."""
+        """Add an ellipse to the unit design. Inputs should be in global_unit."""
         self.unit_shapes.append({
             "type": "ellipse",
             "center": center,
@@ -73,7 +87,7 @@ class LayoutTool:
         })
 
     def add_instance(self, center: Tuple[float, float]):
-        """Add an instance of the unit design at the given global center coordinate."""
+        """Add an instance of the unit design. Inputs should be in global_unit."""
         self.instance_centers.append(center)
 
     def _get_rotated_rect_points(self, cx: float, cy: float, w: float, h: float, rotation_deg: float) -> List[Tuple[float, float]]:
@@ -102,6 +116,9 @@ class LayoutTool:
         """
         global_unit_code = self.UNIT_MAP[self.global_unit]
         unit_design_unit_code = self.UNIT_MAP[self.unit_design_unit]
+
+        # Calculate scale factor from global_unit -> unit_design_unit
+        scale_factor = self.UNIT_TO_M[self.global_unit] / self.UNIT_TO_M[self.unit_design_unit]
 
         # --- 1. Export global.dxf ---
         doc_global = ezdxf.new("R2010")
@@ -150,23 +167,25 @@ class LayoutTool:
         msp_unit.add_point((0.0, 0.0, 0.0), dxfattribs={"layer": "Center"})
 
         for u in self.unit_shapes:
-            base_z = u["base_z"]
-            cx, cy = u["center"]
+            base_z = u["base_z"] * scale_factor
+            cx = u["center"][0] * scale_factor
+            cy = u["center"][1] * scale_factor
             
             if u["type"] == "rectangle":
-                pts = self._get_rotated_rect_points(cx, cy, u["width"], u["height"], u["rotation"])
+                pts = self._get_rotated_rect_points(cx, cy, u["width"] * scale_factor, u["height"] * scale_factor, u["rotation"])
                 msp_unit.add_lwpolyline(pts, close=True, dxfattribs={
                     "layer": u["layer"],
                     "elevation": float(base_z)
                 })
                 
             elif u["type"] == "circle":
-                msp_unit.add_circle(center=(cx, cy, base_z), radius=u["radius"], dxfattribs={
+                msp_unit.add_circle(center=(cx, cy, base_z), radius=u["radius"] * scale_factor, dxfattribs={
                     "layer": u["layer"]
                 })
                 
             elif u["type"] == "ellipse":
-                a, b = u["major_axis"], u["minor_axis"]
+                a = u["major_axis"] * scale_factor
+                b = u["minor_axis"] * scale_factor
                 ang = np.deg2rad(u["rotation"])
                 N = self.resolution
                 angles = np.linspace(0, 2 * np.pi, N, endpoint=False)

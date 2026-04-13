@@ -6,19 +6,25 @@ def main():
     # We can specify different units for the global DXF and the unit design DXF
     layout = LayoutTool(resolution=128, global_unit="mm", unit_design_unit="um")
 
-    # 1. Set the global substrate
+    # IMPORTANT: All inputs to the LayoutTool methods (centers, radii, widths)
+    # MUST be provided in the `global_unit` (e.g. mm). The tool will automatically
+    # scale the shapes to the `unit_design_unit` (e.g. um) during export!
+
+    # 1. Set the global substrate (100mm x 100mm)
     layout.set_substrate(p1=(0, 0), p2=(100, 100), base_z=0.0)
 
     # 2. Add multiple shapes to the single Unit Design
     # Shapes are positioned relative to the unit's local origin (0,0)
-    layout.add_unit_circle(center=(0, 0), radius=5.0, base_z=0.0, layername="bumps")
+    # Radius = 0.005 mm (which will export as 5.0 um in unit_design.dxf)
+    layout.add_unit_circle(center=(0, 0), radius=0.005, base_z=0.0, layername="bumps")
     
-    # Rotated rectangle!
-    layout.add_unit_rectangle(center=(0, 12), width=8.0, height=2.0, rotation_deg=45.0, base_z=0.0, layername="bumps_rect")
+    # Width = 0.008 mm, Height = 0.002 mm (exports as 8.0 um x 2.0 um)
+    layout.add_unit_rectangle(center=(0, 0.012), width=0.008, height=0.002, rotation_deg=45.0, base_z=0.0, layername="bumps_rect")
     
-    layout.add_unit_ellipse(center=(0, -12), major_axis=4.0, minor_axis=2.0, rotation_deg=0.0, base_z=0.0, layername="bumps_ellipse")
+    # Major = 0.004 mm, Minor = 0.002 mm (exports as 4.0 um x 2.0 um)
+    layout.add_unit_ellipse(center=(0, -0.012), major_axis=0.004, minor_axis=0.002, rotation_deg=0.0, base_z=0.0, layername="bumps_ellipse")
 
-    # 3. Add instances of this composite unit by their global center positions
+    # 3. Add instances of this composite unit by their global center positions (in mm)
     layout.add_instance(center=(25, 25))
     layout.add_instance(center=(75, 25))
     layout.add_instance(center=(25, 75))

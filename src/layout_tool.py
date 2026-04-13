@@ -4,12 +4,13 @@ import numpy as np
 from typing import Tuple, Optional, List
 
 class LayoutTool:
-    def __init__(self):
+    def __init__(self, resolution: int = 128):
         self.substrate = None
         self.unit_shapes = []
         self.instance_centers = []
+        self.resolution = resolution
 
-    def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "MOLD CAP"):
+    def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "substrate"):
         """Set the rectangular substrate."""
         self.substrate = {
             "type": "rectangle",
@@ -19,7 +20,7 @@ class LayoutTool:
             "layer": layername
         }
 
-    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "BUMP1"):
+    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "bumps"):
         """Add a rectangle to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "rectangle",
@@ -31,7 +32,7 @@ class LayoutTool:
             "layer": layername
         })
 
-    def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "BUMP1"):
+    def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "bumps"):
         """Add a circle to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "circle",
@@ -41,7 +42,7 @@ class LayoutTool:
             "layer": layername
         })
 
-    def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "BUMP1"):
+    def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "bumps"):
         """Add an ellipse to the unit design, positioned relative to the unit's local origin."""
         self.unit_shapes.append({
             "type": "ellipse",
@@ -144,7 +145,7 @@ class LayoutTool:
             elif u["type"] == "ellipse":
                 a, b = u["major_axis"], u["minor_axis"]
                 ang = np.deg2rad(u["rotation"])
-                N = 64
+                N = self.resolution
                 angles = np.linspace(0, 2 * np.pi, N, endpoint=False)
                 xt = a * np.cos(angles)
                 yt = b * np.sin(angles)
@@ -196,9 +197,6 @@ class LayoutTool:
                     cy = inst_c[1] + u["center"][1]
                     
                     if u["type"] == "rectangle":
-                        # We need to rotate around the u["center"] then translate by inst_c
-                        # But simpler: use the local center relative to unit origin, then globalize
-                        # The rotation is intrinsic to the rectangle shape itself.
                         local_corners = self._get_rotated_rect_points(u["center"][0], u["center"][1], u["width"], u["height"], u["rotation"])
                         global_corners = [(inst_c[0] + lx, inst_c[1] + ly, base_z) for lx, ly in local_corners]
                         
@@ -207,7 +205,7 @@ class LayoutTool:
                         point_idx += 4
                         
                     elif u["type"] in ("circle", "ellipse"):
-                        N = 32
+                        N = self.resolution
                         points.append((cx, cy, base_z))
                         c_idx = point_idx
                         point_idx += 1

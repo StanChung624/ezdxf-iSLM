@@ -1,0 +1,40 @@
+Command: ['C:\\Users\\stanchung\\Desktop\\dxf_gen_mfe\\MDX\\Bin\\MDX2DTo3DICDesignTool.exe', 'C:\\Users\\stanchung\\Desktop\\ezdxf-iSLM\\trial\\trial_01_output\\trial_01_runtime.ini']
+ReturnCode: 0
+=== STDOUT ===
+[14:16:20] Start Read DXF
+[14:16:21] Dxf File: local.dxf
+[14:16:21] Dxf version:AutoCad2010
+[14:16:21] Dxf File: global.dxf
+[14:16:21] Dxf version:AutoCad2010
+[14:16:21] Gate rebuild mesh size :0.0625
+[14:16:21] Finish Read DXF
+[14:16:21] Start Set IC Component
+[14:16:24] Finish Set IC Component
+[14:16:24] Finish Output mpl
+[14:16:24] Start IC Meshing
+[14:16:24] Finish IC Meshing, bad orthogonal count = 0
+[14:16:24] Import Runner(s)
+[14:16:25] Start IC Runner Meshing
+Starting Studio...
+[Command] HybridMesh_Launcher
+Set_Z_MinLayer = 3 
+[Command] Initialize IC MemberData: Success
+[Command] Check IC Component Layout Legal: Legal
+[Command] Any Illegal AttObj? False
+Mesh Size = 1.000000
+Change Gradation To 1.500000
+[14:16:24] Surface Meshing Start 
+[14:16:24] Solid Meshing Start 
+[14:16:24] Solid Meshing Finished 
+[Command]= BLMRUNNERSRFM, Result = Success
+[Command]= BLMRUNNERSLDM, Result = [14:16:33] Finish IC Runner Meshing
+[14:16:33] Save as *.mdg
+[14:16:34] Save as *.mfe
+[14:16:38] Finish
+Success
+[Command]= PASTEBC, Result = Success
+Closing Studio...
+Studio Closed
+It took 0.131000 seconds to close.
+
+=== STDERR ===

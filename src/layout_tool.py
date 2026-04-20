@@ -1,7 +1,11 @@
 import ezdxf
-import meshio
 import numpy as np
 from typing import Tuple, Optional, List
+
+try:
+    import meshio
+except ImportError:
+    meshio = None
 
 class LayoutTool:
     UNIT_MAP = {
@@ -42,7 +46,7 @@ class LayoutTool:
         if self.unit_design_unit not in self.UNIT_MAP:
             raise ValueError(f"Unsupported unit design unit: {unit_design_unit}. Supported units: {list(self.UNIT_MAP.keys())}")
 
-    def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "substrate"):
+    def set_substrate(self, p1: Tuple[float, float], p2: Tuple[float, float], base_z: float = 0.0, layername: str = "MOLD CAP"):
         """Set the rectangular substrate. Coordinates should be in global_unit."""
         self.substrate = {
             "type": "rectangle",
@@ -52,7 +56,7 @@ class LayoutTool:
             "layer": layername
         }
 
-    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_rectangle(self, center: Tuple[float, float], width: float, height: float, rotation_deg: float = 0.0, base_z: float = 0.0, layername: str = "BUMP1"):
         """Add a rectangle to the unit design. Inputs should be in global_unit."""
         self.unit_shapes.append({
             "type": "rectangle",
@@ -64,7 +68,7 @@ class LayoutTool:
             "layer": layername
         })
 
-    def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_circle(self, center: Tuple[float, float], radius: float, base_z: float = 0.0, layername: str = "BUMP1"):
         """Add a circle to the unit design. Inputs should be in global_unit."""
         self.unit_shapes.append({
             "type": "circle",
@@ -74,7 +78,7 @@ class LayoutTool:
             "layer": layername
         })
 
-    def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "bumps"):
+    def add_unit_ellipse(self, center: Tuple[float, float], major_axis: float, minor_axis: float, rotation_deg: float, base_z: float = 0.0, layername: str = "BUMP1"):
         """Add an ellipse to the unit design. Inputs should be in global_unit."""
         self.unit_shapes.append({
             "type": "ellipse",
@@ -108,10 +112,16 @@ class LayoutTool:
             pts.append((cx + rx, cy + ry))
         return pts
 
-    def export_islm(self, global_filename: str = "global.dxf", unit_filename: str = "unit_design.dxf"):
+    def export_islm(
+        self,
+        global_filename: str = "global.dxf",
+        unit_filename: str = "unit_design.dxf",
+        anchor_point: Optional[Tuple[float, float, float]] = None,
+    ):
         """
         Export to iSLM specified format:
-        1. global.dxf: contains substrate geometry and a "Center" layer with POINT entities for unit locations.
+        1. global.dxf: contains substrate geometry, an "Anchor" layer with one POINT entity,
+           and a "Center" layer with POINT entities for unit locations.
         2. unit_design.dxf: contains the unit design centered at (0,0) and a "Center" point at (0,0).
         """
         global_unit_code = self.UNIT_MAP[self.global_unit]
@@ -126,6 +136,7 @@ class LayoutTool:
         msp_global = doc_global.modelspace()
         
         doc_global.layers.add("Center")
+        doc_global.layers.add("Anchor")
         
         if self.substrate:
             if self.substrate["layer"] not in doc_global.layers:
@@ -144,6 +155,14 @@ class LayoutTool:
         for center in self.instance_centers:
             # iSLM restriction: only "point" entities in the "Center" layer
             msp_global.add_point((center[0], center[1], 0.0), dxfattribs={"layer": "Center"})
+
+        # Add one anchor point. If not provided, use first instance center when available.
+        anchor_to_use = anchor_point
+        if anchor_to_use is None and self.instance_centers:
+            c0 = self.instance_centers[0]
+            anchor_to_use = (c0[0], c0[1], 0.0)
+        if anchor_to_use is not None:
+            msp_global.add_point(anchor_to_use, dxfattribs={"layer": "Anchor"})
             
         doc_global.saveas(global_filename)
         print(f"Exported iSLM Global DXF ({self.global_unit}): {global_filename}")
@@ -206,6 +225,9 @@ class LayoutTool:
 
     def export_vtu(self, filename: str, layers: Optional[List[str]] = None):
         """Export the 2D layout representation to a VTU file for ParaView. If layers is provided, only export those layers."""
+        if meshio is None:
+            raise ImportError("meshio is required for export_vtu. Install it with: pip install meshio")
+
         points = []
         lines = []
         
